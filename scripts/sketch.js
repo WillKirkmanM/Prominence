@@ -41,20 +41,95 @@ let lightSource = {
   pos: createVector(0, -50, 0)
 };
 
-// In setup(), adjust starting height and add perspective
+let groundTexture, wallTexture, metalTexture, nightTexture;
+let texturesLoaded = false;
+let textureLoadCount = 0;
+
+function createDefaultTexture(color) {
+  let tex = createGraphics(256, 256);
+  tex.background(color);
+  return tex;
+}
+
+function setupTextures() {
+  // Default textures
+  try {
+    groundTexture = createDefaultTexture(color(100, 80, 60));
+    wallTexture = createDefaultTexture(color(120, 120, 120));
+    metalTexture = createDefaultTexture(color(180, 180, 180));
+  } catch (e) {
+    console.error('Failed to create default textures:', e);
+  }
+  
+  // Load actual textures
+  loadImage('./assets/textures/ground.jpg', 
+    img => {
+      groundTexture = img;
+      checkTexturesLoaded();
+    },
+    () => checkTexturesLoaded()
+  );
+  
+  loadImage('./assets/textures/wall.jpg',
+    img => {
+      wallTexture = img;
+      checkTexturesLoaded();
+    },
+    () => checkTexturesLoaded()
+  );
+  
+  loadImage('./assets/textures/metal.jpg',
+    img => {
+      metalTexture = img;
+      checkTexturesLoaded();
+    },
+    () => checkTexturesLoaded()
+  );
+
+  loadImage('./assets/textures/night.jpg',
+    img => {
+      nightTexture = img;
+      checkTexturesLoaded();
+    },
+    () => checkTexturesLoaded()
+  );
+}
+
+function checkTexturesLoaded() {
+  textureLoadCount++;
+  if (textureLoadCount >= 4) {
+    texturesLoaded = true;
+    console.log('All textures loaded or defaulted');
+  }
+}
+
 function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
+  setupTextures();
   noStroke();
-  perspective(PI/3.0, width/height, 0.1, 2000); // Add proper perspective
+  perspective(PI/3.0, width/height, 0.1, 10000); // Add proper perspective
+  textureMode(NORMAL);
+  textureWrap(REPEAT);
+
+  // Set dark background color
+  background(10, 10, 20); // Very dark blue for night sky
+  
+  // Add dim ambient light
+  ambientLight(50); // Reduced ambient light for night effect
+  
+  // Add dim directional light (moonlight effect)
+  directionalLight(200, 200, 255, 0, 1, -1);
   
   player.pos = createVector(0, 0, 0); // Adjust starting position
   player.vel = createVector(0, 0, 0);
   
   // Create rays with proper vector initialization
-  for (let a = 0; a < TWO_PI; a += PI/32) {
-    let startPos = createVector(player.pos.x, player.pos.y - 50, player.pos.z);
-    rays.push(new Ray(startPos, a));
-  }
+
+  // Uncomment for Ray Tracing
+  // for (let a = 0; a < TWO_PI; a += PI/32) {
+  //   let startPos = createVector(player.pos.x, player.pos.y - 50, player.pos.z);
+  //   rays.push(new Ray(startPos, a));
+  // }
   
   // Create some walls
   walls.push(new Boundary(-200, -200, 200, -200));
@@ -63,6 +138,22 @@ function setup() {
   walls.push(new Boundary(-200, 200, -200, -200));
   
   document.addEventListener('click', () => document.body.requestPointerLock());
+
+  if(!texturesLoaded) {
+    console.warn('Using fallback textures - please check assets folder exists');
+  }
+  textureMode(NORMAL);
+  textureWrap(REPEAT);
+}
+
+function drawSkybox() {
+  push();
+  noStroke();
+  texture(nightTexture);
+  translate(0, 0, 0);
+  translate(player.pos.x, player.pos.y, player.pos.z);
+  sphere(5000);
+  pop();
 }
 
 // Add to setup()
@@ -79,7 +170,18 @@ function draw() {
     drawTitleScreen();
     return;
   }
-  background(135, 206, 235);  // Sky blue
+  if (!texturesLoaded) {
+    background(0);
+    return;
+  }
+
+  // background(135, 206, 235);  // Sky blue
+  background(0)
+  // directionalLight(200, 200, 255, 0, 1, -1);
+  directionalLight(100, 100, 150, 0, 1, -1); // Dimmer light for night
+  ambientLight(50)
+
+  drawSkybox()
   
   handleMovement();
   handleMouseLook();
@@ -95,13 +197,30 @@ function draw() {
     0, 1, 0  // Changed to positive up vector
   );
   
-  // Draw ground plane below player with correct rotation
-  push();
-  fill(34, 139, 34);
-  translate(0, 0, 0);
-  rotateX(-PI/2); // Inverted rotation for ground plane
-  plane(1000, 1000);
-  pop();
+  if (groundTexture && wallTexture && metalTexture) {
+    // Draw ground
+    push();
+    translate(0, 0, 0);
+    rotateX(PI/2);
+    texture(groundTexture);
+    plane(1000, 1000);
+    pop();
+    
+    // Draw walls
+    walls.forEach(wall => {
+      push();
+      texture(wallTexture);
+      wall.show();
+      pop();
+    });
+    
+    // Draw light
+    push();
+    translate(lightSource.pos.x, lightSource.pos.y, lightSource.pos.z);
+    texture(metalTexture);
+    sphere(10);
+    pop();
+  }
   
   // Draw objects with lighting
   drawObjects();
