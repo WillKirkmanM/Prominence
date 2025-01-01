@@ -1,45 +1,98 @@
-let player = {
-  pos: null,
-  vel: null,
-  rot: 0,
-  bobAmount: 0.4,        // Intensity of bob
-  bobSpeed: 0.1,        // Speed of bob cycle
-  bobCycle: 0,          // Tracks bob animation
-  isJumping: false,
-  isSprinting: false,
-  bobPhase: 0,
-  bobAmplitude: 0.15,
-  bobFrequency: 0.3,
-  currentSpeed: 4,
-  baseSpeed: 4,
-  sprintSpeed: 8,
-  sprintAcceleration: 0.2,
-  rotY: 0,  // vertical rotation (pitch)
-  mouseSensitivity: 0.002,
-  maxLookUp: Math.PI/2.5,    // ~72 degrees up
-  maxLookDown: Math.PI/2.5,   // ~72 degrees down
-  maxJumpVel: -12,      // Maximum jump velocity
-  minJumpVel: -6,       // Minimum jump velocity when tapping
-  gravity: 0.6,         // Reduced gravity for smoother fall
-  coyoteTime: 100,      // Ms of jump grace period
-  lastGroundTime: 0,     // Track when player was last grounded
-  height: 5,
-  heightSpeed: 0.1,
-  minHeight: 0.5,
-  maxHeight: 10,
-};
+function keyPressed() {
+  if (key === 'e' || key === 'E') {
+    if (!gameState.isInHouse && !gameState.isFading) {
+      startTeleportSequence();
+    } else {
+      // Check for door interaction
+      doors.forEach(door => {
+        let d = dist(player.pos.x, player.pos.z, door.x, door.z);
+        if (d < gameState.doors.interactDistance) {
+          door.isOpen = !door.isOpen;
+          door.targetRot = door.isOpen ? gameState.doors.maxOpen : 0;
+        }
+      });
+    }
+  }
+}
 
-// Add to your existing player object
-let rays = [];
-let walls = [];
+function startTeleportSequence() {
+  gameState.isFading = true;
+  gameState.fadeAlpha = 0;
+}
 
-// Add at top of sketch.js
-let lightSource = {
-  angle: 0,
-  radius: 200,
-  rotationSpeed: 0.05,
-  pos: createVector(0, -50, 0)
-};
+function handleTeleportation() {
+  if (gameState.isFading) {
+    gameState.fadeAlpha += 10;
+    
+    // Fade to black
+    push();
+    translate(0, 0, -100);
+    fill(0, 0, 0, gameState.fadeAlpha);
+    rect(-width/2, -height/2, width, height);
+    pop();
+    
+    // When fade complete, teleport
+    if (gameState.fadeAlpha >= 255) {
+      teleportToHouse();
+      gameState.isFading = false;
+      gameState.fadeAlpha = 0;
+    }
+  }
+}
+
+function setupLevel() {
+  // Clear existing walls
+  walls = [];
+  
+  // Start area platform
+  walls.push(new Boundary(-100, -600, 100, -600)); 
+  walls.push(new Boundary(100, -600, 100, -400));
+  walls.push(new Boundary(-100, -600, -100, -400));
+  
+  // Reset player position
+  player.pos = createVector(
+    gameState.startPosition.x,
+    gameState.startPosition.y, 
+    gameState.startPosition.z
+  );
+}
+
+function checkTeleport() {
+  if (!gameState.isInHouse) {
+    let d = dist(
+      player.pos.x,
+      player.pos.z,
+      teleportZone.x,
+      teleportZone.z
+    );
+    
+    if (d < teleportZone.radius && !gameState.teleportCooldown) {
+      teleportToHouse();
+    }
+  }
+}
+
+function teleportToHouse() {
+  // Clear existing level
+  walls = [];
+  
+  // Setup house walls
+  
+  // Update game state
+  gameState.isInHouse = true;
+  
+  // Move player to house position
+  player.pos = createVector(
+    gameState.housePosition.x,
+    gameState.housePosition.y,
+    gameState.housePosition.z
+  );
+  
+  // Add cooldown to prevent immediate teleport back
+  gameState.teleportCooldown = 10;
+}
+
+
 
 let groundTexture, wallTexture, metalTexture, nightTexture;
 let texturesLoaded = false;
@@ -115,7 +168,7 @@ function setup() {
   background(10, 10, 20); // Very dark blue for night sky
   
   // Add dim ambient light
-  ambientLight(50); // Reduced ambient light for night effect
+  ambientLight(5/0); // Reduced ambient light for night effect
   
   // Add dim directional light (moonlight effect)
   directionalLight(200, 200, 255, 0, 1, -1);
@@ -189,10 +242,10 @@ function draw() {
   // Camera setup with fixed orientation
   camera(
     player.pos.x, 
-    player.pos.y - 50, // Eye height
+    player.pos.y - 100, // Eye height
     player.pos.z,
     player.pos.x + cos(player.rot) * cos(player.rotY),
-    player.pos.y - 50 + sin(player.rotY), // Look at point adjusted for height
+    player.pos.y - 100 + sin(player.rotY), // Look at point adjusted for height
     player.pos.z + sin(player.rot) * cos(player.rotY),
     0, 1, 0  // Changed to positive up vector
   );
@@ -203,31 +256,37 @@ function draw() {
     translate(0, 0, 0);
     rotateX(PI/2);
     texture(groundTexture);
-    plane(1000, 1000);
+    plane(10000, 10000);
     pop();
     
-    // Draw walls
-    walls.forEach(wall => {
-      push();
-      texture(wallTexture);
-      wall.show();
-      pop();
-    });
-    
-    // Draw light
     push();
     translate(lightSource.pos.x, lightSource.pos.y, lightSource.pos.z);
     texture(metalTexture);
-    sphere(10);
     pop();
   }
   
-  // Draw objects with lighting
-  drawObjects();
+  if (gameState.isInHouse) {
+    drawObjects();
+  }
   
-  // Update rays last
   handleLightMovement();
   updateRays();
+
+  // Draw teleport zone if player isn't in house
+  if (!gameState.isInHouse) {
+    push();
+    translate(teleportZone.x, -50, teleportZone.z);
+    fill(0, 255, 255, 50);
+    cylinder(teleportZone.radius, 100);
+    pop();
+  }
+
+  checkTeleport();
+  if (gameState.teleportCooldown > 0) {
+    gameState.teleportCooldown--;
+  }
+  updateDoors();
+  handleTeleportation()
 }
 
 
@@ -291,58 +350,7 @@ function handleLightMovement() {
   updateLightPosition();
 }
 
-// Modify updateRays()
-function updateRays() {
-  ambientLight(50);
-  directionalLight(255, 255, 255, 0, -1, -1);
-  
-  push();
-  blendMode(SCREEN);
-  noFill();
-  
-  // Draw light source
-  push();
-  translate(lightSource.pos.x, lightSource.pos.y, lightSource.pos.z);
-  fill(255, 255, 0);
-  sphere(10);
-  pop();
-  
-  rays.forEach(ray => {
-    // Use light source position instead of player position
-    const newPos = createVector(
-      lightSource.pos.x,
-      lightSource.pos.y,
-      lightSource.pos.z
-    );
-    
-    ray.setPosition(newPos);
-    
-    let closest = null;
-    let record = Infinity;
-    
-    walls.forEach(wall => {
-      const result = ray.cast(wall);
-      if (result && result.point) {
-        const d = result.distance;
-        if (d < record) {
-          record = d;
-          closest = result.point;
-        }
-      }
-    });
-    
-    if (closest) {
-      const alpha = map(record, 0, ray.maxDistance, 150, 0);
-      stroke(255, 255, 100, alpha); // Yellow-ish light
-      strokeWeight(1);
-      line(ray.pos.x, ray.pos.y, ray.pos.z,
-           closest.x, closest.y, closest.z);
-    }
-  });
-  
-  pop();
-  blendMode(BLEND);
-}
+const updateRays = () => {}
 
 // Add this to draw() before drawing objects:
 function drawObjects() {
@@ -360,4 +368,28 @@ function drawObjects() {
     box(30);
     pop();
   }
+}
+
+function drawDoors() {
+  push();
+  texture(wallTexture);
+  doors.forEach(door => {
+    push();
+    translate(door.x, -25, door.z);
+    rotateY(radians(door.rotation));
+    box(40, 50, 5); // door dimensions
+    pop();
+  });
+  pop();
+}
+
+// Add to draw() function before handleTeleportation
+function updateDoors() {
+  doors.forEach(door => {
+    if(door.rotation !== door.targetRot) {
+      let diff = door.targetRot - door.rotation;
+      door.rotation += Math.sign(diff) * gameState.doors.openSpeed;
+    }
+  });
+  drawDoors();
 }
