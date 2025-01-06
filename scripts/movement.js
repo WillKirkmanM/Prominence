@@ -1,10 +1,64 @@
+function pointToTriangle(point, v1, v2, v3) {
+  // Calculate triangle edges
+  let edge1 = p5.Vector.sub(v2, v1);
+  let edge2 = p5.Vector.sub(v3, v1);
+  
+  // Get triangle normal
+  let normal = p5.Vector.cross(edge1, edge2).normalize();
+  
+  // Calculate distance from point to triangle plane
+  let planeDistance = abs(p5.Vector.sub(point, v1).dot(normal));
+  
+  // Project point onto triangle plane
+  let projected = p5.Vector.add(
+    point, 
+    p5.Vector.mult(normal, -planeDistance)
+  );
+  
+  // Check if projected point is inside triangle
+  let area = p5.Vector.cross(edge1, edge2).mag() / 2;
+  let area1 = p5.Vector.cross(
+    p5.Vector.sub(projected, v1),
+    p5.Vector.sub(projected, v2)
+  ).mag() / 2;
+  let area2 = p5.Vector.cross(
+    p5.Vector.sub(projected, v2),
+    p5.Vector.sub(projected, v3)
+  ).mag() / 2;
+  let area3 = p5.Vector.cross(
+    p5.Vector.sub(projected, v3),
+    p5.Vector.sub(projected, v1)
+  ).mag() / 2;
+  
+  // If point is inside triangle, return plane distance
+  if (abs(area - (area1 + area2 + area3)) < 0.01) {
+    return planeDistance;
+  }
+  
+  // Otherwise return minimum distance to edges
+  let edgeDist1 = pointToLineSegment(point, v1, v2);
+  let edgeDist2 = pointToLineSegment(point, v2, v3);
+  let edgeDist3 = pointToLineSegment(point, v3, v1);
+  
+  return min(edgeDist1, edgeDist2, edgeDist3);
+}
+
+function pointToLineSegment(p, a, b) {
+  let ab = p5.Vector.sub(b, a);
+  let ap = p5.Vector.sub(p, a);
+  let proj = ap.dot(ab) / ab.dot(ab);
+  proj = constrain(proj, 0, 1);
+  let closest = p5.Vector.add(a, p5.Vector.mult(ab, proj));
+  return p5.Vector.dist(p, closest);
+}
+
 function handleMovement() {
-  // Mouse look
+  // Mouse look remains the same
   if (mouseX !== pmouseX && document.pointerLockElement) {
     player.rot += (mouseX - pmouseX) * 0.005;
   }
   
-  // Sprint check
+  // Sprint handling remains the same
   if (keyIsDown(SHIFT)) {
     player.isSprinting = true;
     player.currentSpeed = lerp(player.currentSpeed, player.sprintSpeed, player.sprintAcceleration);
@@ -14,24 +68,29 @@ function handleMovement() {
   }
 
   let speed = player.currentSpeed;
+  let newPos = createVector(player.pos.x, player.pos.y, player.pos.z);
   
-  // WASD movement
+  // Calculate attempted movement
   if (keyIsDown(87)) { // W
-    player.pos.x += cos(player.rot) * speed;
-    player.pos.z += sin(player.rot) * speed;
+    newPos.x += cos(player.rot) * speed;
+    newPos.z += sin(player.rot) * speed;
   }
   if (keyIsDown(83)) { // S
-    player.pos.x -= cos(player.rot) * speed;
-    player.pos.z -= sin(player.rot) * speed;
+    newPos.x -= cos(player.rot) * speed;
+    newPos.z -= sin(player.rot) * speed;
   }
   if (keyIsDown(65)) { // A
-    player.pos.x += cos(player.rot - Math.PI/2) * speed; // Fixed Math.Math.PI to Math.PI
-    player.pos.z += sin(player.rot - Math.PI/2) * speed;
+    newPos.x += cos(player.rot - PI/2) * speed;
+    newPos.z += sin(player.rot - PI/2) * speed;
   }
   if (keyIsDown(68)) { // D
-    player.pos.x += cos(player.rot + Math.PI/2) * speed;
-    player.pos.z += sin(player.rot + Math.PI/2) * speed;
+    newPos.x += cos(player.rot + PI/2) * speed;
+    newPos.z += sin(player.rot + PI/2) * speed;
   }
+  
+  // Check collision before updating position
+  player.pos.x = newPos.x;
+  player.pos.z = newPos.z;
   
   handleJump();
   handleLightMovement();

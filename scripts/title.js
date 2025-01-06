@@ -1,72 +1,73 @@
 let titleScreen = true;
-let titleFont;
+let fontLoaded = false;
+let introImage;
+let introSound;
+let introSoundPlaying = false;
+let gameStarted = false;  // New flag to track first transition
 
-function preload() {
-  // Load font before setup runs
-  titleFont = loadFont('https://cdnjs.cloudflare.com/ajax/libs/topcoat/0.8.0/font/SourceCodePro-Bold.otf');
+function preloadTitleScreenAssets() {
+  introImage = loadImage('./assets/images/intro.webp');
+  introSound = loadSound('./assets/audio/mainmenu.mp3');
 }
-
-// function setup() {
-  // Create canvas with window dimensions
-  // createCanvas(windowWidth, windowHeight, WEBGL);
-  // noStroke();
-  // perspective(PI / 3.0, width / height, 0.1, 2000); // Add proper perspective
-  
-  // player.pos = createVector(0, 0, 0); // Adjust starting position
-  // player.vel = createVector(0, 0, 0);
-  
-  // // Create rays with proper vector initialization
-  // for (let a = 0; a < TWO_PI; a += PI / 32) {
-  //   let startPos = createVector(player.pos.x, player.pos.y - 50, player.pos.z);
-  //   rays.push(new Ray(startPos, a));
-  // }
-  
-  // // Create some walls
-  // walls.push(new Boundary(-200, -200, 200, -200));
-  // walls.push(new Boundary(200, -200, 200, 200));
-  // walls.push(new Boundary(200, 200, -200, 200));
-// }
 
 function drawTitleScreen() {
   createCanvas(windowWidth, windowHeight);
-  // Draw background
-  noStroke()
-  background(0);
-
-  titleScreen = false
-  if (mouseIsPressed) {
-    titleScreen = false;
+  
+  // Only start playing if not already playing
+  if (titleScreen && !introSoundPlaying) {
+    introSound.play();
+    introSoundPlaying = true;
+  } else if (!titleScreen) {
+    introSoundPlaying = false;
   }
   
-  // Calculate center positions
-  let centerX = windowWidth / 2;
-  let centerY = windowHeight / 2;
-  
-  // Debugging: Print center positions
-  console.log('Center X:', centerX, 'Center Y:', centerY);
-  
-  // Title text
   push();
-  textFont(titleFont);
+  image(introImage, -1100, -1000, 2000, 2000);
+  filter(BLUR, 8);
+  pop();
+
+  if (mouseIsPressed) {
+    introSound.stop();
+    introSoundPlaying = false;
+    titleScreen = false;
+    if (!titleScreen && !introSoundPlaying) {
+      console.log("Playing background music because")
+      console.log(titleScreen, introSoundPlaying)
+      backgroundMusic.play();
+      bellSound.play()
+    }
+  }
+  
+  let centerX = 0
+  let centerY = 0
+  
+  push();
+  if (fontLoaded) {
+    textFont(titleFont);
+  } else {
+    textFont('Arial');
+  }
   textSize(64);
   textAlign(CENTER, CENTER);
   fill(255);
-  text('3D GAME', centerX, centerY - 100); // Move up from center
+  text('Prominence, A Horror Film', centerX, centerY - 50);
   
   // Start button
   let buttonWidth = 200;
   let buttonHeight = 60;
   let buttonX = centerX - buttonWidth / 2;
-  let buttonY = centerY + 50; // Move down from center
+  let buttonY = centerY + 50;
   
-  // Draw button
-  fill(100);
-  if (mouseX > buttonX && mouseX < buttonX + buttonWidth && 
-      mouseY > buttonY && mouseY < buttonY + buttonHeight) {
-    fill(150);
-    if (mouseIsPressed) {
-      titleScreen = false;
-    }
+  let isOverButton = mouseX > buttonX && mouseX < buttonX + buttonWidth && 
+                    mouseY > buttonY && mouseY < buttonY + buttonHeight;
+                    
+  if (mouseIsPressed && isOverButton) {
+    titleScreen = false;
+  }
+  
+  fill(100, 200);
+  if (isOverButton) {
+    fill(150, 200);
   }
   rect(buttonX, buttonY, buttonWidth, buttonHeight);
   
@@ -74,11 +75,6 @@ function drawTitleScreen() {
   fill(255);
   textSize(32);
   textAlign(CENTER, CENTER);
-  text('START', centerX, buttonY + buttonHeight / 2);
+  text('Click to Play', centerX, centerY + 80);
   pop();
-}
-
-function windowResized() {
-  // Adjust canvas size when window is resized
-  resizeCanvas(windowWidth, windowHeight);
 }

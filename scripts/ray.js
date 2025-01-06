@@ -58,6 +58,13 @@ class Ray {
     };
   }
 
+  generate() {
+    for (let a = 0; a < TWO_PI; a += PI/32) {
+      let startPos = createVector(player.pos.x, player.pos.y - 50, player.pos.z);
+      rays.push(new Ray(startPos, a));
+    }
+  }
+
   show(walls) {
     let closest = null;
     let record = this.maxDistance;

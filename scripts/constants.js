@@ -16,25 +16,23 @@ let player = {
   sprintAcceleration: 0.2,
   rotY: 0,  // vertical rotation (pitch)
   mouseSensitivity: 0.002,
-  maxLookUp: Math.PI/2.5,    // ~72 degrees up
-  maxLookDown: Math.PI/2.5,   // ~72 degrees down
-  maxJumpVel: -12,      // Maximum jump velocity
-  minJumpVel: -6,       // Minimum jump velocity when tapping
-  gravity: 0.6,         // Reduced gravity for smoother fall
-  coyoteTime: 100,      // Ms of jump grace period
-  lastGroundTime: 0,     // Track when player was last grounded
+  maxLookUp: Math.PI/2.5,
+  maxLookDown: Math.PI/2.5,
+  maxJumpVel: -12,   
+  minJumpVel: -6,    
+  gravity: 0.6,      
+  coyoteTime: 100,   
+  lastGroundTime: 0,  
   height: 5,
   heightSpeed: 0.1,
   minHeight: 0.5,
   maxHeight: 10,
 };
 
-// Add to your existing player object
 let rays = [];
 let walls = [];
 let doors = [];
 
-// Add at top of sketch.js
 let lightSource = {
   angle: 0,
   radius: 200,
@@ -49,8 +47,10 @@ let gameState = {
   fadeAlpha: 0,
   isFading: false,
   teleportCooldown: 0,
-  startPosition: { x: 0, y: 0, z: -500 },
+  // startPosition: { x: 0, y: 0, z: -500 },
+  startPosition: { x: -1180, y: -50, z: 3518 },
   housePosition: { x: 0, y: 0, z: 0 },
+  hasKey: false,
   doors: {
     openSpeed: 2,
     maxOpen: 90, // degrees
