@@ -1,10 +1,122 @@
-let backgroundMusic;
-let thunderSounds = [];
-let bellSound;
-let lastThunderTime = 0;
-let bellReverb;
-let bellDelay;
+/**
+ * Manages all audio playback and effects for the game
+ */
+class SoundManager {
+  static get THUNDER_COUNT() { return 4; }
+  static get DEFAULT_VOLUME() { return 0.1; }
+  static get BELL_SETTINGS() {
+    return {
+      volume: 0.9,
+      rate: 0.8,
+      reverbDuration: 5,
+      reverbDecay: 2
+    };
+  }
 
+  constructor() {
+    // Audio sources
+    this._backgroundMusic = null;
+    this._bellSound = null; 
+    this._thunderSounds = [];
+    
+    // Audio effects
+    this._bellReverb = null;
+    
+    // State
+    this._lastThunderTime = 0;
+    this._isInitialized = false;
+  }
+
+  // Public getters
+  get isInitialized() { return this._isInitialized; }
+  get lastThunderTime() { return this._lastThunderTime; }
+
+  /**
+   * Initializes audio processing chain and effects
+   */
+  setup() {
+    if (!this._backgroundMusic || !this._bellSound) return;
+
+    this._setupBackgroundMusic();
+    this._setupBellSound();
+    this._setupThunderSounds();
+    
+    this._isInitialized = true;
+  }
+
+  // Public control methods  
+  toggleBackgroundMusic(playing) {
+    if (!this._backgroundMusic) return;
+    
+    if (playing && !this._backgroundMusic.isPlaying()) {
+      this._backgroundMusic.loop();
+    } else if (!playing) {
+      this._backgroundMusic.stop(); 
+    }
+  }
+
+  setBackgroundVolume(level) {
+    if (this._backgroundMusic) {
+      this._backgroundMusic.setVolume(constrain(level, 0, 1));
+    }
+  }
+
+  toggleBells(playing) {
+    if (!this._bellSound) return;
+    
+    if (playing && !this._bellSound.isPlaying()) {
+      this._bellSound.loop();
+    } else if (!playing) {
+      this._bellSound.stop();
+    }
+  }
+
+  playRandomThunder() {
+    if (this._thunderSounds.length === 0) return;
+    
+    const index = floor(random(this._thunderSounds.length));
+    this._thunderSounds[index].play();
+    this._lastThunderTime = millis();
+  }
+
+  // Private helper methods
+  _loadSound(path) {
+    return new Promise((resolve, reject) => {
+      loadSound(path, 
+        () => resolve(sound),
+        (err) => reject(err)
+      );
+    });
+  }
+
+  _setupBackgroundMusic() {
+    this._backgroundMusic.setVolume(SoundManager.DEFAULT_VOLUME);
+    this._backgroundMusic.loop();
+  }
+
+  _setupBellSound() {
+    const settings = SoundManager.BELL_SETTINGS;
+    
+    // Create and configure reverb
+    this._bellReverb = new p5.Reverb();
+    this._bellSound.disconnect();
+    this._bellSound.connect(this._bellReverb);
+    this._bellReverb.set(settings.reverbDuration, settings.reverbDecay);
+    
+    // Configure bell sound
+    this._bellSound.rate(settings.rate);
+    this._bellSound.setVolume(settings.volume);
+    this._bellSound.loop();
+  }
+
+  _setupThunderSounds() {
+    this._thunderSounds.forEach(thunder => 
+      thunder.setVolume(SoundManager.DEFAULT_VOLUME)
+    );
+  }
+}
+
+let thunderSounds = []
 function preloadSound() {
   soundFormats('mp3');
   backgroundMusic = loadSound('./assets/audio/deathbells.mp3', 
@@ -25,61 +137,17 @@ function preloadSound() {
 }
 
 function setupSound() {
-  if (backgroundMusic) {
-    backgroundMusic.setVolume(0.1); // 50% volume
-    backgroundMusic.loop();         // Enable looping
-  }
-    
-  if (bellSound) {
-    // Create reverb effect
-    bellReverb = new p5.Reverb();
-   
-    // Connect sound to reverb
-    bellSound.disconnect();
-    bellSound.connect(bellReverb);
-    
-    // Set reverb parameters
-    bellReverb.set(5, 2); // 5 second reverb, 2 second decay
-    
-    // Adjust playback rate (0.5 = half speed, lower pitch)
-    bellSound.rate(0.8);
-    
-    // Set volume and start playing
-    bellSound.setVolume(0.9);
-    bellSound.loop();
-  }
-  // Initialize thunder sounds
-  thunderSounds.forEach(thunder => thunder.setVolume(0.3));
+  soundManager.setup();
 }
 
 function toggleBackgroundMusic(playing) {
-  if (!backgroundMusic) return;
-  
-  if (playing) {
-    if (!backgroundMusic.isPlaying()) {
-      backgroundMusic.loop();
-    }
-  } else {
-    backgroundMusic.stop();
-  }
+  soundManager.toggleBackgroundMusic(playing);
 }
 
 function setBackgroundVolume(level) {
-  if (backgroundMusic) {
-    backgroundMusic.setVolume(constrain(level, 0, 1));
-  }
+  soundManager.setBackgroundVolume(level);
 }
 
-
-
 function toggleBells(playing) {
-  if (!bellSound) return;
-  
-  if (playing) {
-    if (!bellSound.isPlaying()) {
-      bellSound.loop();
-    }
-  } else {
-    bellSound.stop();
-  }
+  soundManager.toggleBells(playing);
 }

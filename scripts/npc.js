@@ -187,7 +187,7 @@ function playSegment(number) {
   if (segment) {
     isAudioPlaying = true;
     npc.isPlaying = true;
-    NPC.showDialog = true; // Update to use static
+    NPC.showDialog = true;
     segment.play();
 
     segment.onended(() => {

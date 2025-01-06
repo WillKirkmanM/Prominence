@@ -14,11 +14,11 @@ class Ray {
   setPosition(pos) {
     if (pos) {
       if (pos instanceof p5.Vector) {
-        this.pos.set(pos); // Using set instead of copy
+        this.pos.set(pos);
       } else {
         this.pos.set(pos.x, pos.y, pos.z || 0);
       }
-      // Update cached end position
+      // Update Cached End Position
       this.endX = this.pos.x + this.dirX;
       this.endY = this.pos.y + this.dirY;
     }
@@ -54,7 +54,7 @@ class Ray {
     
     return {
       point: pt,
-      distance: dist(this.pos.x, this.pos.y, pt.x, pt.y) // Using p5.js dist() is faster
+      distance: dist(this.pos.x, this.pos.y, pt.x, pt.y)
     };
   }
 
@@ -80,7 +80,7 @@ class Ray {
 
     if (closest) {
       // Pre-calculate shadow intensity
-      const shadowIntensity = (this.maxDistance - record) * 0.255; // Faster than map()
+      const shadowIntensity = (this.maxDistance - record) * 0.255;
       // Set style once
       stroke(0, shadowIntensity);
       fill(0, shadowIntensity);

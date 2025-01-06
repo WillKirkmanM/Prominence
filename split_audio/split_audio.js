@@ -23,7 +23,6 @@ async function loadAudio(file) {
 
 async function cutAudio(file) {
     const audioBuffer = await loadAudio(file);
-    const cutPoints = [2.5, 5.5, 9.5]; // Time points in seconds
     
     const segments = [
         { start: 0, end: 2.5 },
@@ -104,6 +103,3 @@ function writeString(view, offset, string) {
         view.setUint8(offset + i, string.charCodeAt(i));
     }
 }
-
-// Usage example:
-// cutAudio('./assets/audio/voice.mp3');

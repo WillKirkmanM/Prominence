@@ -1,43 +1,20 @@
-let font;
-let keyCollectable;
-let oldMan;
-let house;
-let door;
-let npc;
+// Game assets
+let font, keyCollectable;
+
+// Interactive entities
+let oldMan, door, npc, house;
+
+// Environment objects
+let grass;
+
+// Game systems
+let endScreenManager, fogManager, houseManager, levelManager, lightningManager, movementManager, soundManager;
 
 let shaderInitialized = false;
 let showDebugInfo = false;
 
 let segmentDurations = []
 let dialogEndTime = 0
-
-function drawDebugInfo() {
-  push();
-  fill(255);
-  textSize(20);
-  text('Player position: ' + player.pos, 10, 20);
-  text('Player rotation: ' + player.rot, 10, 40);
-  text('Player rotationY: ' + player.rotY, 10, 60);
-  text('Player velocity: ' + player.vel, 10, 80);
-  text('Player speed: ' + player.speed, 10, 100);
-  text('Player mouse sensitivity: ' + player.mouseSensitivity, 10, 120);
-  text('Player look up/down: ' + player.maxLookUp + '/' + player.maxLookDown, 10, 140);
-  text('NPC position: ' + npc.pos, 10, 160);
-  text('NPC dialog: ' + npc.dialog, 10, 180);
-  text('NPC interaction range: ' + npc.interactionRange, 10, 200);
-  text('Show dialog: ' + showDialog, 10, 220);
-  text('Dialog timer: ' + dialogTimer, 10, 240);
-  text('Dialog duration: ' + DIALOG_DURATION, 10, 260);
-  pop();
-}
-
-const textureOrder = [
-  30, 22, 23, 24, 25, 9, 21, 5, 9, 6,
-  8, 9, 27, 28, 11, 12, 31, 32, 34, 35,
-  36, 37, 38, 39, 40, 33, 42, 13, 41, 28,
-  0, 1, 2, 3, 4, 7, 10, 14, 15, 16,
-  17, 18, 10, 19, 20, 26, 29, 43
-];
 
 function preload() {
   preloadTitleScreenAssets()
@@ -81,6 +58,15 @@ function preload() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
+  
+  endScreenManager = new EndScreen()
+  fogManager = new FogManager()
+  grass = generateGrass()
+  levelManager = new LevelManager()
+  lightningManager = new LightningManager()
+  movementManager = new MovementManager()
+  soundManager = new SoundManager()
+  
   setupTextures();
   setupSound()
 
@@ -92,6 +78,7 @@ function setup() {
 
   if (!shaderInitialized) {
     createFogShader();
+    fogManager.initialize()
     shaderInitialized = true;
   }
 
@@ -143,7 +130,8 @@ function updateLightPosition() {
 }
 
 function draw() {
-  if (isEndScreen) {
+  // --- Screen State Management ---
+  if (endScreenManager.isActive) {
     endScreen()
     return
   }
@@ -156,48 +144,57 @@ function draw() {
     return;
   }
 
+  // --- Scene Setup ---
   resetFogShader()
-
   directionalLight(100, 100, 150, 0, 1, -1);
-
-  updateThunder()
   drawSkybox()
 
+  // --- Environmental Effects ---
+  handleKeyPress()
+  updateThunder()
+  lightningManager.update()
+
+  // --- Player Controls ---
   handleMovement();
   handleMouseLook();
   
-  updatePlayerPosition()
+  // --- World Objects Rendering ---
   drawHouse()
 
+  // Door interaction and state
   door.draw();
   door.checkInteraction(player.pos);
   door.update();
 
+  // NPC handling
   npc.draw();
   npc.checkInteraction(player.pos)
 
+  // Dialog timeout check
   if (millis() > dialogEndTime) {
     npc.showDialog = false;
   }
 
+  // Environment objects
   grass.forEach(grass => grass.draw());
-
   keyCollectable.draw()
   keyCollectable.checkCollection(player.pos)
 
-  // Camera setup with fixed orientation
+  // --- Camera Configuration ---
+  // Sets up first-person perspective with fixed orientation
   camera(
     player.pos.x, 
     player.pos.y - 100, // Eye height
     player.pos.z,
-    player.pos.x + cos(player.rot) * cos(player.rotY),
-    player.pos.y - 100 + sin(player.rotY), // Look at point adjusted for height
-    player.pos.z + sin(player.rot) * cos(player.rotY),
-    0, 1, 0  // Changed to positive up vector
+    player.pos.x + cos(player.rot) * cos(player.rotY), // Look direction X
+    player.pos.y - 100 + sin(player.rotY),             // Look direction Y
+    player.pos.z + sin(player.rot) * cos(player.rotY), // Look direction Z
+    0, 1, 0  // Up vector
   );
   
+  // --- Ground and Environment Rendering ---
   if (groundTexture && wallTexture && metalTexture) {
-    // Draw ground
+    // Ground plane
     push();
     translate(0, 0, 0);
     rotateX(PI/2);
@@ -209,22 +206,25 @@ function draw() {
     plane(10000, 10000);
     pop();
     
+    // Light source object
     push();
     translate(lightSource.pos.x, lightSource.pos.y, lightSource.pos.z);
     texture(metalTexture);
     pop();
   }
   
+  // --- Indoor Scene Elements ---
   if (gameState.isInHouse) {
     drawObjects();
   }
   
+  // --- Lighting and Effects ---
   handleLightMovement();
   updateRays();
-
   checkStairCollision()
 
-  // Draw teleport zone if player isn't in house
+  // --- Teleportation System ---
+  // Visualization of teleport zone
   if (!gameState.isInHouse) {
     push();
     translate(teleportZone.x, -50, teleportZone.z);
@@ -233,6 +233,7 @@ function draw() {
     pop();
   }
 
+  // Teleportation logic
   checkTeleport();
   if (gameState.teleportCooldown > 0) {
     gameState.teleportCooldown--;
@@ -241,6 +242,37 @@ function draw() {
   handleTeleportation()
   resetFogShader()
 }
+
+function drawDebugInfo() {
+  push();
+  fill(255);
+  textSize(20);
+  text('Player position: ' + player.pos, 10, 20);
+  text('Player rotation: ' + player.rot, 10, 40);
+  text('Player rotationY: ' + player.rotY, 10, 60);
+  text('Player velocity: ' + player.vel, 10, 80);
+  text('Player speed: ' + player.speed, 10, 100);
+  text('Player mouse sensitivity: ' + player.mouseSensitivity, 10, 120);
+  text('Player look up/down: ' + player.maxLookUp + '/' + player.maxLookDown, 10, 140);
+  text('NPC position: ' + npc.pos, 10, 160);
+  text('NPC dialog: ' + npc.dialog, 10, 180);
+  text('NPC interaction range: ' + npc.interactionRange, 10, 200);
+  text('Show dialog: ' + showDialog, 10, 220);
+  text('Dialog timer: ' + dialogTimer, 10, 240);
+  text('Dialog duration: ' + DIALOG_DURATION, 10, 260);
+  pop();
+}
+
+// This is the order of the textures for the manor.
+const textureOrder = [
+  30, 22, 23, 24, 25, 9, 21, 5, 9, 6,
+  8, 9, 27, 28, 11, 12, 31, 32, 34, 35,
+  36, 37, 38, 39, 40, 33, 42, 13, 41, 28,
+  0, 1, 2, 3, 4, 7, 10, 14, 15, 16,
+  17, 18, 10, 19, 20, 26, 29, 43
+];
+
+
 
 // let stairStart = createVector(-349, -0, -19);
 let stairStart = createVector(-300, 150, -10);
@@ -285,9 +317,8 @@ function checkStairCollision() {
   return false;
 }
 
-// let walkwayStart = createVector(-335, -200, -512);
 let walkwayStart = createVector(-300, -1000, -100);
-let walkwayEnd = createVector(-250, -1000, -1500); // Extended Z coordinate
+let walkwayEnd = createVector(-250, -1000, -1500);
 let walkwayWidth = 400;
 
 function drawWalkway() {
@@ -332,7 +363,6 @@ function handleMouseLook() {
     player.rot += movedX * player.mouseSensitivity;
     
     // Vertical rotation (pitch)
-    // Added negative sign to movedY to fix inverted look
     player.rotY = constrain(
       player.rotY + movedY * player.mouseSensitivity,
       -player.maxLookUp,
@@ -355,7 +385,6 @@ function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
 
-// Add light controls to handleMovement()
 function handleLightMovement() {
   // Left/Right rotation
   if (keyIsDown(LEFT_ARROW)) {
@@ -387,10 +416,9 @@ function handleLightMovement() {
 const updateRays = () => {}
 
 function drawObjects() {
-  // Enable lights for 3D objects
   lights();
   
-  // Draw boxes with shadows
+  // Boxes with Shadows
   fill(150);
   noStroke();
   for(let i = 0; i < 10; i++) {
@@ -416,7 +444,6 @@ function drawDoors() {
   pop();
 }
 
-// Add to draw() function before handleTeleportation
 function updateDoors() {
   doors.forEach(door => {
     if(door.rotation !== door.targetRot) {
@@ -427,12 +454,9 @@ function updateDoors() {
   drawDoors();
 }
 
-// When drawing text, use push()/pop() to preserve transformations:
 function drawText(message, x, y, z) {
   push();
-  // Move to camera space for consistent text rendering
   translate(x, y, z);
-  // Rotate to face camera
   rotateY(-player.rot);
   // Draw text
   fill(255);

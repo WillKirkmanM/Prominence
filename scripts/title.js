@@ -3,7 +3,7 @@ let fontLoaded = false;
 let introImage;
 let introSound;
 let introSoundPlaying = false;
-let gameStarted = false;  // New flag to track first transition
+let gameStarted = false;
 
 function preloadTitleScreenAssets() {
   introImage = loadImage('./assets/images/intro.webp');

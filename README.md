@@ -1,6 +1,33 @@
 # Perspective
 Find your way out.
 
-Frustum Culling
 - https://learnopengl.com/Guest-Articles/2021/Scene/Frustum-Culling
 - https://en.wikipedia.org/wiki/Viewing_frustum
+- https://en.wikipedia.org/wiki/First-person_(video_games)
+- https://elisee.github.io/craftstudio-wiki/Tutorials/FPS.html
+- https://en.wikipedia.org/wiki/Collision_detection
+- https://developer.mozilla.org/en-US/docs/Games/Techniques/2D_collision_detection
+- https://happycoding.io/tutorials/processing/collision-detection
+- https://www.jeffreythompson.org/collision-detection/
+- https://clauswilke.com/art/post/shaders
+- https://en.wikipedia.org/wiki/Shader
+- https://www.khronos.org/opengl/wiki/shader
+- https://en.wikipedia.org/wiki/Dialogue_tree
+- https://www.adventuregamestudio.co.uk/wiki/Dialog_script
+- https://en.wikipedia.org/wiki/Conversation_games
+- http://blog.nuclex-games.com/tutorials/cxx/game-state-management/
+- https://www.gamedev.net/forums/topic/714351-state-management/
+- https://en.wikipedia.org/wiki/High-dynamic-range_rendering
+- https://twhl.info/wiki/page/VERC%3A_Dynamic_Lighting
+- https://en.wikipedia.org/wiki/Mathematical_optimization
+- https://en.wikipedia.org/wiki/Game_theory
+- https://developer.valvesoftware.com/wiki/Latency_Compensating_Methods_in_Client/Server_In-game_Protocol_Design_and_Optimization
+- https://harddrop.com/wiki/DAS_Optimization
+- https://en.wikipedia.org/wiki/Reflection_mapping
+- https://en.wikipedia.org/wiki/Cube_mapping
+- https://www.autodesk.com/solutions/procedural-generation
+- https://en.wikipedia.org/wiki/Procedural_generation
+- https://blanton144.github.io/exex/pdf/atmosphere.pdf
+- https://wiki.resonite.com/Component:CharacterController
+- https://www.retrorefractions.com/blog/so-you-want-to-write-a-raytracer/
+- https://medium.com/everythingcg/building-your-very-own-path-tracer-from-scratch-c-4d9d3ce5fea4
